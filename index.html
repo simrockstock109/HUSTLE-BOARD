@@ -240,9 +240,13 @@
     <div class="hdr-left">
       <h1><span>THE </span>APEX BOARD</h1>
       <div class="sub" id="dealerName">Simmons Rockwell Ford</div>
-      <div class="period" id="reportPeriod">March 2026</div>
+      <div class="period" id="reportPeriod"></div>
     </div>
     <div class="hdr-right">
+      <div id="syncStatus" style="display:none;font-size:11px;color:var(--txt3);text-align:right;line-height:1.4">
+        <div id="syncLabel">Last synced: —</div>
+      </div>
+      <button class="btn" onclick="syncFromSheet()" id="syncBtn" style="border-color:var(--neon);color:var(--neon)">🔄 Sync Sheet</button>
       <label class="btn btn-fire" style="cursor:pointer">
         📄 Import CRM
         <input type="file" accept=".csv,.tsv,.txt" onchange="importCRM(event)" style="display:none">
@@ -281,10 +285,18 @@ const DEFAULT_WEIGHTS = {
   closerThreshold:0.5, closerBonus:1.10,
 };
 
+// Dynamic month/year for report period
+function currentPeriod(){
+  const d=new Date();
+  return d.toLocaleString('default',{month:'long'})+' '+d.getFullYear();
+}
+
 const DEFAULT_CONFIG = {
   dealerName: 'Simmons Rockwell Ford',
-  reportPeriod: 'March 2026',
+  reportPeriod: '', // empty = auto (current month)
   management: 'Brendon Stockner, Michael Strobel',
+  sheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSy_z9RGMcK71v0VhIChWBgkcQq4WvwChw-pVFG8m0yUyl6til8F6Nwn7QRHhH545lN3kjy_3_6pQ00/pub?gid=0&single=true&output=csv',
+  autoSync: true,
 };
 
 const INITIAL_DATA = [
@@ -781,8 +793,20 @@ function renderSettings(){
   } else {
     body=`
       <div class="fg"><label>Dealer Name</label><input type="text" id="cDealerName" value="${c.dealerName}"></div>
-      <div class="fg"><label>Report Period</label><input type="text" id="cReportPeriod" value="${c.reportPeriod}"></div>
+      <div class="fg"><label>Report Period (leave blank for auto: current month)</label><input type="text" id="cReportPeriod" value="${c.reportPeriod}" placeholder="${currentPeriod()} (auto)"></div>
       <div class="fg"><label>Management Names (comma-separated, hidden by default on import)</label><textarea id="cManagement">${c.management}</textarea></div>
+      <div style="margin-top:16px;padding:16px;background:rgba(34,211,238,.06);border-radius:10px;border:1px solid rgba(34,211,238,.15)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:18px">📊</span>
+          <span style="font-weight:700;font-size:14px">Google Sheet Sync</span>
+        </div>
+        <p style="font-size:12px;color:var(--txt2);margin-bottom:12px;line-height:1.5">Paste the published CSV URL from your Google Sheet. The board will pull data from it automatically on each page load.</p>
+        <div class="fg"><label>Published Google Sheet CSV URL</label><input type="text" id="cSheetUrl" value="${c.sheetUrl||''}" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <label class="toggle"><input type="checkbox" id="cAutoSync" ${c.autoSync?'checked':''}><span class="slider"></span></label>
+          <span style="font-size:12px;color:var(--txt2);font-weight:500">Auto-sync on page load</span>
+        </div>
+      </div>
       <div class="danger-zone">
         <div class="dz-title">Danger Zone</div>
         <button class="btn btn-danger" onclick="resetAll()">Reset Everything to Defaults</button>
@@ -821,10 +845,12 @@ function applySettings(){
     weights.closerBonus=parseFloat(document.getElementById('wCloserBonus').value)||0;
   } else {
     config.dealerName=document.getElementById('cDealerName').value.trim()||config.dealerName;
-    config.reportPeriod=document.getElementById('cReportPeriod').value.trim()||config.reportPeriod;
+    config.reportPeriod=document.getElementById('cReportPeriod').value.trim();
     config.management=document.getElementById('cManagement').value;
+    config.sheetUrl=document.getElementById('cSheetUrl').value.trim();
+    config.autoSync=document.getElementById('cAutoSync').checked;
     document.getElementById('dealerName').textContent=config.dealerName;
-    document.getElementById('reportPeriod').textContent=config.reportPeriod;
+    document.getElementById('reportPeriod').textContent=config.reportPeriod||currentPeriod();
   }
   save(); closeModal(); renderAll(); toast('Settings saved');
 }
@@ -835,7 +861,7 @@ function resetAll(){
   weights=JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
   config=JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   document.getElementById('dealerName').textContent=config.dealerName;
-  document.getElementById('reportPeriod').textContent=config.reportPeriod;
+  document.getElementById('reportPeriod').textContent=config.reportPeriod||currentPeriod();
   save(); closeModal(); renderAll(); toast('Reset to defaults');
 }
 
@@ -965,10 +991,150 @@ function toast(msg,err){
 
 function renderAll(){
   document.getElementById('dealerName').textContent=config.dealerName;
-  document.getElementById('reportPeriod').textContent=config.reportPeriod;
+  document.getElementById('reportPeriod').textContent=config.reportPeriod||currentPeriod();
+  // Show/hide sync button based on whether a sheet URL is configured
+  const hasSheet = config.sheetUrl && config.sheetUrl.trim();
+  document.getElementById('syncBtn').style.display = hasSheet ? '' : 'none';
+  document.getElementById('syncStatus').style.display = hasSheet ? '' : 'none';
   renderMVP(); renderTeamTotals(); renderScoreboard(); renderGrind(); renderRoster();
 }
+
+// ─── GOOGLE SHEET SYNC ───
+let isSyncing = false;
+
+async function syncFromSheet(silent){
+  const url = (config.sheetUrl||'').trim();
+  if(!url){ if(!silent) toast('No Google Sheet URL configured. Go to Settings → General.',true); return; }
+  if(isSyncing) return;
+  isSyncing = true;
+  const btn = document.getElementById('syncBtn');
+  const label = document.getElementById('syncLabel');
+  btn.textContent = '⏳ Syncing…';
+  btn.style.opacity = '.6';
+  btn.style.pointerEvents = 'none';
+
+  try {
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const text = await resp.text();
+    if(!text.trim()) throw new Error('Empty response');
+
+    // Try CRM parser first (VinSolutions format with Subtotal rows)
+    let parsed;
+    try {
+      parsed = parseCRMReport(text);
+    } catch(e) {
+      // Fall back to simple flat CSV (Google Sheet with clean headers)
+      parsed = parseSimpleCSV(text);
+    }
+
+    if(!parsed || !parsed.length) throw new Error('No rep data found in sheet');
+
+    people = parsed;
+    save();
+    renderAll();
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    label.textContent = 'Synced: ' + timeStr;
+    document.getElementById('syncStatus').style.display = '';
+    localStorage.setItem('apexLastSync', now.toISOString());
+
+    if(!silent) toast('Synced ' + parsed.length + ' reps from Google Sheet');
+  } catch(err) {
+    console.error('[Apex Board] Sync error:', err);
+    if(!silent) toast('Sync failed: ' + err.message, true);
+    label.textContent = 'Sync failed';
+  } finally {
+    isSyncing = false;
+    btn.textContent = '🔄 Sync Sheet';
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = '';
+  }
+}
+
+// Simple flat CSV parser — for Google Sheets with one row per rep
+function parseSimpleCSV(text){
+  const mgmt=(config.management||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length < 2) throw new Error('Not enough rows');
+  const headers = csvRow(lines[0]);
+  if(!headers || headers.length < 3) throw new Error('Bad headers');
+
+  // Build flexible column map — match partial/fuzzy header names
+  const cm = {};
+  headers.forEach((h,i)=>{
+    const l = h.toLowerCase().trim().replace(/[^a-z0-9% ]/g,'');
+    if(l==='name'||l==='rep'||l==='salesperson') cm.name=i;
+    else if(l==='leads'||l==='total leads') cm.leads=i;
+    else if(l==='active'||l==='active leads') cm.active=i;
+    else if(l==='inactive'||l==='inactive leads') cm.inactive=i;
+    else if(l==='new sold'||l==='new') cm.newSold=i;
+    else if(l==='used sold'||l==='used') cm.usedSold=i;
+    else if(l==='total sold'||l==='sold'||l==='units') cm.totalSold=i;
+    else if(l==='calls'||l==='phone calls') cm.calls=i;
+    else if(l==='emails'||l==='email'||l==='emails sent') cm.emails=i;
+    else if(l==='texts'||l==='text'||l==='sms') cm.texts=i;
+    else if(l==='appt created'||l==='appts created'||l==='appointments created'||l==='appts set') cm.apptCreated=i;
+    else if(l==='appt shown'||l==='appts shown'||l==='appointments shown') cm.apptShown=i;
+    else if(l==='appt sold'||l==='appts sold'||l==='appointments sold') cm.apptSold=i;
+    else if(l==='roi'||l==='gross'||l==='total gross'||l==='gross profit') cm.roi=i;
+    else if(l==='% closing'||l==='close rate'||l==='closing'||l==='close %') cm.closeRate=i;
+    else if(l==='up type') cm.upType=i;
+  });
+
+  if(cm.name===undefined) throw new Error('No "Name" column found');
+
+  const pM=v=>{if(!v)return 0;return parseFloat(v.replace(/[$,\s"()]/g,''))||0};
+  const pP=v=>parseFloat((v||'').replace(/[%"]/g,''))||0;
+  const pN=v=>parseInt((v||'').replace(/[",]/g,''))||0;
+
+  const result=[];
+  for(let i=1;i<lines.length;i++){
+    const row=csvRow(lines[i]); if(!row||row.length<3) continue;
+    let name=(row[cm.name]||'').trim();
+    if(!name||name.toLowerCase()==='all users'||name.toLowerCase()==='total') continue;
+
+    // Handle "Last, First" format
+    if(name.includes(',')){
+      const parts=name.split(',').map(s=>s.trim());
+      if(parts.length>=2) name=parts[1]+' '+parts[0];
+    }
+
+    const isMgmt=mgmt.some(m=>name.toLowerCase().includes(m));
+
+    const ns=pN(row[cm.newSold]);
+    const us=pN(row[cm.usedSold]);
+    const ts=cm.totalSold!==undefined?pN(row[cm.totalSold]):(ns+us);
+
+    result.push({
+      id:'p'+Date.now()+'_'+i, name, visible:!isMgmt,
+      leads:pN(row[cm.leads]), active:pN(row[cm.active]), inactive:pN(row[cm.inactive]),
+      newSold:ns, usedSold:us, totalSold:ts,
+      calls:pN(row[cm.calls]), emails:pN(row[cm.emails]), texts:pN(row[cm.texts]),
+      apptCreated:pN(row[cm.apptCreated]), apptShown:pN(row[cm.apptShown]),
+      apptSold:pN(row[cm.apptSold]),
+      roi:pM(row[cm.roi]), closeRate:pP(row[cm.closeRate]),
+      showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0
+    });
+  }
+  return result;
+}
+
 renderAll();
+
+// Auto-sync on page load if configured
+if(config.autoSync && config.sheetUrl && config.sheetUrl.trim()){
+  // Show last sync time from storage while we fetch
+  const lastSync = localStorage.getItem('apexLastSync');
+  if(lastSync){
+    const d = new Date(lastSync);
+    document.getElementById('syncLabel').textContent = 'Last: '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    document.getElementById('syncStatus').style.display = '';
+  }
+  // Small delay so page renders first, then sync
+  setTimeout(()=>syncFromSheet(true), 800);
+}
 </script>
 </body>
 </html>
