@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Apex Board</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e18; --bg2: #111827; --bg3: #1a2436; --bg4: #243049;
+      --brd: #283348; --brd2: #3d5173;
+      --txt: #f1f5f9; --txt2: #94a3b8; --txt3: #64748b;
+      --fire: #ff5e2e; --fire2: #ff7b36; --amber: #f59e0b;
+      --ice: #38bdf8; --neon: #22d3ee;
+      --green: #10b981; --green2: #34d399;
+      --red: #ef4444; --purple: #a78bfa;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:var(--brd2); border-radius:3px; }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden; }
+    body::before { content:''; position:fixed; top:-300px; right:-300px; width:800px; height:800px; background:radial-gradient(circle,rgba(255,94,46,.03),transparent 70%); pointer-events:none; }
+    body::after { content:''; position:fixed; bottom:-300px; left:-300px; width:800px; height:800px; background:radial-gradient(circle,rgba(56,189,248,.03),transparent 70%); pointer-events:none; }
+    .app { max-width:1480px; margin:0 auto; padding:28px 20px; position:relative; z-index:1; }
+
+    /* HEADER */
+    .hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; padding-bottom:22px; border-bottom:1px solid var(--brd); flex-wrap:wrap; gap:16px; }
+    .hdr-left h1 { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:2px; line-height:1; background:linear-gradient(135deg,var(--fire),var(--amber)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hdr-left h1 span { -webkit-text-fill-color:var(--txt); }
+    .hdr-left .sub { font-size:12px; color:var(--txt3); letter-spacing:2.5px; text-transform:uppercase; margin-top:5px; font-weight:600; }
+    .hdr-left .period { font-size:13px; color:var(--txt2); margin-top:3px; }
+    .hdr-right { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    /* BUTTONS */
+    .btn { padding:10px 20px; border-radius:6px; border:1px solid var(--brd); background:var(--bg3); color:var(--txt); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+    .btn:hover { background:var(--bg4); border-color:var(--brd2); }
+    .btn-fire { background:linear-gradient(135deg,var(--fire),#d84519); color:#fff; border:none; }
+    .btn-fire:hover { filter:brightness(1.1); box-shadow:0 4px 15px rgba(255,94,46,.2); }
+    .btn-green { background:linear-gradient(135deg,var(--green),#059669); color:#fff; border:none; }
+    .btn-green:hover { filter:brightness(1.1); }
+    .btn-sm { padding:6px 14px; font-size:11px; border-radius:5px; }
+    .btn-danger { border-color:var(--red); color:var(--red); }
+    .btn-danger:hover { background:rgba(239,68,68,.1); }
+    .btn-settings { border-color:var(--amber); color:var(--amber); }
+    .btn-settings:hover { background:rgba(245,158,11,.1); }
+
+    /* TOGGLE */
+    .toggle { position:relative; width:40px; height:22px; cursor:pointer; flex-shrink:0; display:inline-block; }
+    .toggle input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle .slider { position:absolute; inset:0; background:var(--bg); border:1px solid var(--brd); border-radius:11px; transition:all .25s; }
+    .toggle .slider::before { content:''; position:absolute; width:14px; height:14px; left:3px; top:3px; background:var(--txt3); border-radius:50%; transition:all .25s; }
+    .toggle input:checked + .slider { background:var(--green); border-color:var(--green); }
+    .toggle input:checked + .slider::before { transform:translateX(18px); background:#fff; }
+
+    /* MVP */
+    .mvp { background:var(--bg2); border:1px solid var(--brd); border-radius:12px; padding:22px 28px; display:flex; align-items:center; gap:28px; margin-bottom:28px; position:relative; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.25); flex-wrap:wrap; }
+    .mvp::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--fire),var(--amber),var(--fire2)); }
+    .mvp-crown { font-size:44px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+    .mvp-info { flex:1 1 180px; }
+    .mvp-info h2 { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:1.5px; color:var(--fire); }
+    .mvp-info .mvp-sub { font-size:13px; color:var(--txt2); margin-top:3px; font-weight:500; }
+    .mvp-stats { display:flex; gap:28px; flex-wrap:wrap; }
+    .mvp-stat { text-align:center; }
+    .mvp-stat .ms-val { font-family:'Bebas Neue',sans-serif; font-size:32px; line-height:1; color:var(--fire2); }
+    .mvp-stat .ms-lbl { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:var(--txt3); margin-top:5px; font-weight:700; }
+
+    /* TEAM TOTALS */
+    .compare-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-bottom:28px; }
+    .cmp-card { background:var(--bg2); border:1px solid var(--brd); border-radius:8px; padding:14px 12px; text-align:center; transition:all .2s; }
+    .cmp-card:hover { border-color:var(--brd2); transform:translateY(-2px); }
+    .cmp-card .cmp-val { font-family:'Bebas Neue',sans-serif; font-size:30px; line-height:1; }
+    .cmp-card .cmp-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); margin-top:7px; font-weight:700; }
+
+    /* TABS */
+    .tabs { display:flex; gap:4px; margin-bottom:22px; background:var(--bg2); border:1px solid var(--brd); border-radius:8px; padding:4px; width:fit-content; }
+    .tab { padding:10px 22px; border-radius:6px; border:none; background:transparent; color:var(--txt3); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; letter-spacing:.5px; }
+    .tab:hover { color:var(--txt2); }
+    .tab.active { background:var(--bg4); color:var(--txt); box-shadow:0 1px 3px rgba(0,0,0,.2); }
+
+    /* TABLE */
+    .tbl-wrap { background:var(--bg2); border:1px solid var(--brd); border-radius:12px; overflow-x:auto; margin-bottom:14px; }
+    table { width:100%; border-collapse:collapse; min-width:1060px; }
+    thead th { padding:14px 12px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--txt3); font-weight:700; border-bottom:1px solid var(--brd); background:rgba(0,0,0,.15); white-space:nowrap; cursor:pointer; user-select:none; transition:color .2s; }
+    thead th:hover { color:var(--txt); }
+    thead th.sorted { color:var(--fire); }
+    thead th .sa { margin-left:3px; opacity:.3; font-size:9px; }
+    thead th.sorted .sa { opacity:1; }
+    tbody tr { border-bottom:1px solid var(--brd); transition:background .15s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--bg3); }
+    tbody td { padding:14px 12px; font-size:14px; white-space:nowrap; font-weight:500; }
+
+    .rank-num { font-family:'Bebas Neue',sans-serif; font-size:22px; width:40px; color:var(--txt3); }
+    .rank-num.r1 { color:var(--fire); } .rank-num.r2 { color:var(--amber); } .rank-num.r3 { color:var(--ice); }
+    .name-cell { display:flex; align-items:center; gap:10px; min-width:160px; }
+    .av { width:34px; height:34px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; flex-shrink:0; letter-spacing:.5px; }
+    .name-txt { font-weight:600; color:var(--txt); }
+
+    .metric { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700; }
+    .m-hot { background:rgba(16,185,129,.12); color:var(--green2); }
+    .m-warm { background:rgba(245,158,11,.12); color:var(--amber); }
+    .m-cold { background:rgba(239,68,68,.12); color:var(--red); }
+    .m-fire { background:rgba(255,94,46,.12); color:var(--fire); font-size:13px; }
+
+    .hustle-bar { display:flex; align-items:center; gap:10px; }
+    .hb-track { width:90px; height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }
+    .hb-fill { height:100%; border-radius:3px; transition:width .5s ease; }
+    .hb-val { font-family:'Bebas Neue',sans-serif; font-size:22px; min-width:36px; text-align:right; }
+
+    .edit-icon { opacity:0; transition:opacity .2s; cursor:pointer; color:var(--txt3); font-size:15px; padding:4px; }
+    tbody tr:hover .edit-icon { opacity:1; }
+    .edit-icon:hover { color:var(--txt); }
+
+    .badge-icon { font-size:15px; margin-left:4px; cursor:help; }
+
+    /* HEAT MAP */
+    .grind-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:18px; margin-bottom:28px; }
+    .grind-card { background:var(--bg2); border:1px solid var(--brd); border-radius:12px; padding:22px; position:relative; overflow:hidden; transition:all .25s; }
+    .grind-card:hover { border-color:var(--brd2); transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,.3); }
+    .grind-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .grind-card.top-tier::before { background:linear-gradient(90deg,var(--green),var(--neon)); }
+    .grind-card.mid-tier::before { background:linear-gradient(90deg,var(--amber),var(--fire2)); }
+    .grind-card.low-tier::before { background:linear-gradient(90deg,var(--red),var(--amber)); }
+    .gc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .gc-name { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px; }
+    .gc-score { display:flex; align-items:baseline; gap:5px; }
+    .gc-score .gs-num { font-family:'Bebas Neue',sans-serif; font-size:32px; }
+    .gc-score .gs-lbl { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--txt3); font-weight:600; }
+    .gc-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:18px; }
+    .gc-met { background:rgba(0,0,0,.15); border:1px solid var(--brd); border-radius:8px; padding:10px; text-align:center; }
+    .gc-met .gm-val { font-family:'Bebas Neue',sans-serif; font-size:24px; line-height:1; }
+    .gc-met .gm-lbl { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); margin-top:5px; font-weight:700; }
+    .sw-section { border-top:1px solid var(--brd); padding-top:14px; }
+    .sw-title { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--txt3); margin-bottom:10px; font-weight:700; }
+    .sw-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .sw-label { font-size:11px; width:80px; color:var(--txt2); font-weight:500; }
+    .sw-bar-wrap { flex:1; display:flex; align-items:center; gap:9px; }
+    .sw-bar-track { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; position:relative; }
+    .sw-bar-avg { position:absolute; top:0; bottom:0; width:2px; background:var(--txt2); z-index:2; }
+    .sw-bar-fill { height:100%; border-radius:3px; transition:width .5s ease; position:relative; z-index:1; }
+    .sw-bar-fill.hot { background:linear-gradient(90deg,var(--green),var(--neon)); }
+    .sw-bar-fill.warm { background:linear-gradient(90deg,var(--amber),var(--fire2)); }
+    .sw-bar-fill.cold { background:linear-gradient(90deg,var(--red),var(--amber)); }
+    .sw-val { font-size:12px; font-weight:600; min-width:30px; text-align:right; color:var(--txt); }
+    .sw-tag { font-size:9px; padding:3px 7px; border-radius:4px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+    .sw-tag.crush { background:rgba(16,185,129,.12); color:var(--green2); border:1px solid rgba(16,185,129,.2); }
+    .sw-tag.push { background:rgba(245,158,11,.12); color:var(--amber); border:1px solid rgba(245,158,11,.2); }
+    .sw-tag.grind { background:rgba(239,68,68,.12); color:var(--red); border:1px solid rgba(239,68,68,.2); }
+
+    /* LEAD-TYPE CLOSE RATE */
+    .lt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .lt-card { background:rgba(0,0,0,.15); border:1px solid var(--brd); border-radius:8px; padding:10px 8px; text-align:center; position:relative; overflow:hidden; }
+    .lt-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; opacity:.6; }
+    .lt-card.lt-show::before { background:var(--fire); }
+    .lt-card.lt-phone::before { background:var(--amber); }
+    .lt-card.lt-inet::before { background:var(--ice); }
+    .lt-label { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); font-weight:700; margin-bottom:5px; }
+    .lt-pct { font-family:'Bebas Neue',sans-serif; font-size:22px; line-height:1; }
+    .lt-pct.lt-hot { color:var(--green2); }
+    .lt-pct.lt-warm { color:var(--amber); }
+    .lt-pct.lt-cold { color:var(--red); }
+    .lt-pct.lt-na { color:var(--txt3); }
+    .lt-detail { font-size:10px; color:var(--txt2); margin-top:4px; font-weight:600; }
+
+    /* ROSTER */
+    .roster-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .roster-toolbar h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1.5px; }
+    .roster-toolbar .rt-right { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .active-count { font-size:12px; color:var(--txt2); background:rgba(0,0,0,.2); padding:6px 12px; border-radius:6px; border:1px solid var(--brd); font-weight:600; }
+    .roster-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+    .roster-card { background:var(--bg2); border:1px solid var(--brd); border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; transition:all .2s; }
+    .roster-card:hover { border-color:var(--brd2); background:var(--bg3); }
+    .roster-card.disabled { opacity:.4; filter:grayscale(50%); }
+    .roster-card .rc-av { width:42px; height:42px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+    .roster-card .rc-info { flex:1; min-width:0; }
+    .roster-card .rc-name { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .roster-card .rc-stats { font-size:11px; color:var(--txt3); margin-top:3px; font-weight:500; }
+    .roster-card .rc-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+
+    /* MODAL */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:100; justify-content:center; align-items:center; backdrop-filter:blur(6px); padding:16px; }
+    .modal-overlay.show { display:flex; }
+    .modal { background:var(--bg2); border:1px solid var(--brd2); border-radius:14px; padding:32px 28px; width:640px; max-width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 24px 80px rgba(0,0,0,.8); }
+    .modal h2 { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1.5px; margin-bottom:20px; color:var(--txt); }
+    .fg { margin-bottom:14px; }
+    .fg label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--txt3); margin-bottom:6px; font-weight:700; }
+    .fg input, .fg textarea { width:100%; padding:9px 12px; background:rgba(0,0,0,.3); border:1px solid var(--brd); border-radius:6px; color:var(--txt); font-family:'DM Sans',sans-serif; font-size:13px; transition:border .2s; }
+    .fg input:focus, .fg textarea:focus { outline:none; border-color:var(--fire); box-shadow:0 0 0 2px rgba(255,94,46,.15); }
+    .fg textarea { resize:vertical; min-height:60px; }
+    .fg input[type=number] { -moz-appearance:textfield; }
+    .fg input::-webkit-outer-spin-button, .fg input::-webkit-inner-spin-button { -webkit-appearance:none; }
+    .frow { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .frow3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .modal-ft { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; padding-top:20px; border-top:1px solid var(--brd); }
+
+    /* SETTINGS TABS */
+    .stabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg); border-radius:8px; padding:4px; flex-wrap:wrap; }
+    .stab { padding:8px 16px; border-radius:6px; border:none; background:transparent; color:var(--txt3); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+    .stab.active { background:var(--bg4); color:var(--txt); }
+    .buff-card { padding:16px; background:rgba(0,0,0,.15); border-radius:10px; border:1px solid var(--brd); margin-bottom:16px; }
+    .buff-card .buff-hdr { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .buff-card .buff-hdr span:first-child { font-size:18px; }
+    .buff-card .buff-hdr .buff-name { font-weight:700; font-size:14px; }
+    .buff-card .buff-hdr .buff-type { font-size:11px; font-weight:600; }
+    .buff-card p { font-size:12px; color:var(--txt2); margin-bottom:12px; line-height:1.5; }
+    .formula-preview { margin-top:12px; padding:14px; background:rgba(0,0,0,.2); border-radius:8px; border:1px solid var(--brd); }
+    .formula-preview .fp-title { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--txt3); font-weight:700; margin-bottom:10px; }
+    .formula-preview code { font-size:12px; color:var(--txt2); font-family:'DM Mono',monospace; line-height:1.8; }
+    .danger-zone { margin-top:16px; padding:14px; background:rgba(239,68,68,.08); border-radius:8px; border:1px solid rgba(239,68,68,.2); }
+    .danger-zone .dz-title { font-size:11px; color:var(--red); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+
+    /* LEGEND */
+    .legend { display:flex; align-items:center; gap:20px; padding:12px 18px; background:var(--bg2); border:1px solid var(--brd); border-radius:9px; font-size:12px; color:var(--txt2); font-weight:500; flex-wrap:wrap; margin-bottom:28px; }
+    .legend b { color:var(--txt); }
+    .legend .leg-item { display:flex; align-items:center; gap:5px; }
+    .legend .leg-dot { width:9px; height:9px; border-radius:3px; }
+    .legend .leg-line { width:3px; height:11px; }
+
+    /* TOAST */
+    .toast { position:fixed; bottom:28px; right:28px; background:var(--bg3); border:1px solid var(--green); color:var(--green2); padding:12px 22px; border-radius:8px; font-size:14px; font-weight:600; z-index:200; opacity:0; transform:translateY(20px); transition:all .3s ease; box-shadow:0 12px 40px rgba(0,0,0,.4); pointer-events:none; }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .ani { animation:fadeUp .5s ease forwards; opacity:0; }
+    .d1{animation-delay:.05s} .d2{animation-delay:.1s} .d3{animation-delay:.15s}
+
+    @media(max-width:1100px) { .grind-grid{grid-template-columns:1fr 1fr} .compare-grid{grid-template-columns:repeat(3,1fr)} }
+    @media(max-width:768px) {
+      .app{padding:20px 16px} .hdr{flex-direction:column;align-items:flex-start} .hdr-left h1{font-size:36px}
+      .mvp{flex-direction:column;text-align:center;gap:20px} .mvp-stats{justify-content:center}
+      .grind-grid,.roster-grid{grid-template-columns:1fr} .compare-grid{grid-template-columns:repeat(2,1fr)}
+      .frow,.frow3{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr ani">
+    <div class="hdr-left">
+      <h1><span>THE </span>APEX BOARD</h1>
+      <div class="sub" id="dealerName">Simmons Rockwell Ford</div>
+      <div class="period" id="reportPeriod">March 2026</div>
+    </div>
+    <div class="hdr-right">
+      <label class="btn btn-fire" style="cursor:pointer">
+        📄 Import CRM
+        <input type="file" accept=".csv,.tsv,.txt" onchange="importCRM(event)" style="display:none">
+      </label>
+      <button class="btn" onclick="exportData()">⬇ Export</button>
+      <button class="btn btn-settings" onclick="openSettings()">⚙ Settings</button>
+    </div>
+  </div>
+
+  <div id="mvpSection"></div>
+  <div id="teamTotals"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-v="scoreboard" onclick="switchTab(this)">Leaderboard</button>
+    <button class="tab" data-v="grind" onclick="switchTab(this)">Heat Map</button>
+    <button class="tab" data-v="roster" onclick="switchTab(this)">Roster</button>
+  </div>
+
+  <div id="view-scoreboard"></div>
+  <div id="view-grind" style="display:none"></div>
+  <div id="view-roster" style="display:none"></div>
+</div>
+
+<div class="modal-overlay" id="modal"><div class="modal" id="modalInner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG & STATE ───
+const COLORS = ['#ff5e2e','#38bdf8','#34d399','#a78bfa','#f59e0b','#ef4444','#22d3ee','#ec4899','#84cc16','#fb923c'];
+
+const DEFAULT_WEIGHTS = {
+  callPts:5, textPts:2, emailPts:2,
+  apptSetPts:15, apptShowPts:40, soldPts:100,
+  kbThreshold:3, kbPenaltyPer:1.5,
+  dinoMinCalls:10, dinoRatio:0.25, dinoPenalty:15,
+  closerThreshold:0.5, closerBonus:1.10,
+};
+
+const DEFAULT_CONFIG = {
+  dealerName: 'Simmons Rockwell Ford',
+  reportPeriod: 'March 2026',
+  management: 'Brendon Stockner, Michael Strobel',
+};
+
+const INITIAL_DATA = [
+  {id:'p1',name:'Ian Benjamin',visible:true,leads:37,active:13,inactive:17,newSold:1,usedSold:7,totalSold:8,calls:33,emails:15,texts:149,apptCreated:10,apptShown:6,apptSold:4,roi:22866.95,closeRate:21.62,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p2',name:'Georden Decker',visible:true,leads:52,active:23,inactive:19,newSold:0,usedSold:11,totalSold:11,calls:65,emails:21,texts:301,apptCreated:22,apptShown:9,apptSold:4,roi:22814.77,closeRate:21.15,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p3',name:'Skyler Fish',visible:true,leads:54,active:34,inactive:14,newSold:2,usedSold:8,totalSold:10,calls:77,emails:18,texts:166,apptCreated:10,apptShown:0,apptSold:0,roi:19023.97,closeRate:18.52,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p4',name:'Bryan Loeffler',visible:true,leads:4,active:3,inactive:1,newSold:0,usedSold:0,totalSold:0,calls:6,emails:0,texts:2,apptCreated:0,apptShown:0,apptSold:0,roi:0,closeRate:0,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p5',name:'Jake McAvoy',visible:true,leads:4,active:3,inactive:1,newSold:0,usedSold:0,totalSold:0,calls:40,emails:28,texts:138,apptCreated:2,apptShown:1,apptSold:1,roi:0,closeRate:0,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p6',name:'Eva Planavsky',visible:true,leads:46,active:24,inactive:12,newSold:2,usedSold:10,totalSold:12,calls:69,emails:28,texts:177,apptCreated:6,apptShown:5,apptSold:1,roi:24856.29,closeRate:26.09,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p7',name:'Tristan Roche',visible:true,leads:72,active:39,inactive:23,newSold:2,usedSold:11,totalSold:13,calls:182,emails:123,texts:298,apptCreated:20,apptShown:12,apptSold:3,roi:48203.80,closeRate:18.06,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p8',name:'Brendon Stockner',visible:false,leads:0,active:0,inactive:0,newSold:0,usedSold:0,totalSold:0,calls:10,emails:5,texts:29,apptCreated:1,apptShown:1,apptSold:1,roi:0,closeRate:0,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+  {id:'p9',name:'Michael Strobel',visible:false,leads:0,active:0,inactive:0,newSold:0,usedSold:0,totalSold:0,calls:148,emails:144,texts:1,apptCreated:0,apptShown:0,apptSold:0,roi:0,closeRate:0,showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0},
+];
+
+// Backward compat: ensure lead-type fields exist on any rep loaded from older saved state
+function normalizePerson(p){
+  const keys=['showroomLeads','showroomSold','phoneLeads','phoneSold','internetLeads','internetSold'];
+  keys.forEach(k=>{ if(typeof p[k]!=='number') p[k]=0; });
+  return p;
+}
+
+let people = loadStore('apexPeople', INITIAL_DATA).map(normalizePerson);
+let weights = loadStore('apexWeights', DEFAULT_WEIGHTS);
+let config = loadStore('apexConfig', DEFAULT_CONFIG);
+let sort = {key:'hustle', dir:'desc'};
+let settingsSection = 'scoring';
+
+function loadStore(k, fb) { try { const s=localStorage.getItem(k); return s?JSON.parse(s):JSON.parse(JSON.stringify(fb)); } catch(e){ return JSON.parse(JSON.stringify(fb)); } }
+function save() { localStorage.setItem('apexPeople',JSON.stringify(people)); localStorage.setItem('apexWeights',JSON.stringify(weights)); localStorage.setItem('apexConfig',JSON.stringify(config)); }
+function vis() { return people.filter(p=>p.visible); }
+
+// ─── SCORING ───
+function apexScore(p) {
+  const w=weights;
+  let base = p.calls*w.callPts + p.texts*w.textPts + p.emails*w.emailPts
+    + p.apptCreated*w.apptSetPts + p.apptShown*w.apptShowPts + p.totalSold*w.soldPts;
+  const dig = p.texts + p.emails;
+  if (p.calls>0 && dig>p.calls*w.kbThreshold) base -= (dig - p.calls*w.kbThreshold)*w.kbPenaltyPer;
+  if (p.calls>w.dinoMinCalls && p.texts<p.calls*w.dinoRatio) base -= w.dinoPenalty;
+  if (p.apptShown>0 && (p.totalSold/p.apptShown)>=w.closerThreshold) base *= w.closerBonus;
+  return Math.max(0, Math.round(base));
+}
+
+function getStatuses(p) {
+  const w=weights, dig=p.texts+p.emails;
+  return {
+    closer: p.apptShown>0 && (p.totalSold/p.apptShown)>=w.closerThreshold,
+    keyboard: p.calls>0 && dig>p.calls*w.kbThreshold,
+    dino: p.calls>w.dinoMinCalls && p.texts<p.calls*w.dinoRatio,
+  };
+}
+
+function getAvg(key) {
+  const v=vis().filter(p=>p.leads>0||p.calls>5||p.totalSold>0);
+  if(!v.length) return 0;
+  return v.reduce((s,p)=>s+p[key],0)/v.length;
+}
+
+function metricBadge(val,avg) {
+  const cls = val>=avg*1.3?'m-hot':val>=avg*0.7?'m-warm':'m-cold';
+  return `<span class="metric ${cls}">${val}</span>`;
+}
+
+function hbColor(pct) { return pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)'; }
+function fmt$(n) { return '$'+Math.round(n).toLocaleString(); }
+function ini(n) { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+// ─── RENDERERS ───
+function renderMVP() {
+  const scored = vis().map(p=>({...p,hs:apexScore(p)})).sort((a,b)=>b.hs-a.hs);
+  const m = scored[0];
+  if(!m) { document.getElementById('mvpSection').innerHTML=''; return; }
+  document.getElementById('mvpSection').innerHTML = `
+    <div class="mvp ani d1">
+      <div class="mvp-crown">🔥</div>
+      <div class="mvp-info">
+        <h2>${m.name.toUpperCase()}</h2>
+        <div class="mvp-sub">Heavy Hitter &bull; Apex Score: ${m.hs}</div>
+      </div>
+      <div class="mvp-stats">
+        <div class="mvp-stat"><div class="ms-val">${m.totalSold}</div><div class="ms-lbl">Sales</div></div>
+        <div class="mvp-stat"><div class="ms-val">${m.calls}</div><div class="ms-lbl">Calls</div></div>
+        <div class="mvp-stat"><div class="ms-val">${m.emails}</div><div class="ms-lbl">Emails</div></div>
+        <div class="mvp-stat"><div class="ms-val">${m.apptCreated}</div><div class="ms-lbl">Appts</div></div>
+        <div class="mvp-stat"><div class="ms-val">${fmt$(m.roi)}</div><div class="ms-lbl">Gross</div></div>
+      </div>
+    </div>`;
+}
+
+function renderTeamTotals() {
+  const v=vis();
+  const t={leads:0,calls:0,emails:0,texts:0,apptCreated:0,apptShown:0,totalSold:0,roi:0,newSold:0,usedSold:0};
+  v.forEach(p=>{ for(const k in t) t[k]+=p[k]||0; });
+  const cards = [
+    {v:t.totalSold,l:'Total Sold',c:'var(--fire)'},{v:t.newSold,l:'New',c:'var(--ice)'},
+    {v:t.usedSold,l:'Used',c:'var(--purple)'},{v:t.calls,l:'Phone Calls',c:'var(--green)'},
+    {v:t.emails,l:'Emails',c:'var(--neon)'},{v:t.texts,l:'Texts',c:'var(--txt3)'},
+    {v:t.apptCreated,l:'Appts Set',c:'var(--amber)'},{v:t.apptShown,l:'Shown',c:'var(--fire2)'},
+    {v:fmt$(t.roi),l:'Total Gross',c:'var(--green2)',raw:1}
+  ];
+  document.getElementById('teamTotals').innerHTML = `
+    <div class="compare-grid ani d2">
+      ${cards.map(c=>`<div class="cmp-card"><div class="cmp-val" style="color:${c.c}">${c.v}</div><div class="cmp-lbl">${c.l}</div></div>`).join('')}
+    </div>`;
+}
+
+function renderScoreboard() {
+  const v=vis();
+  if(!v.length) {
+    document.getElementById('view-scoreboard').innerHTML = `<div style="text-align:center;padding:60px;color:var(--txt3)"><div style="font-size:40px;margin-bottom:10px;opacity:.3">👀</div><p style="font-size:15px;font-weight:500">No reps visible. Go to Roster to toggle people on.</p></div>`;
+    return;
+  }
+  const avgC=getAvg('calls'),avgE=getAvg('emails'),avgT=getAvg('texts'),avgA=getAvg('apptCreated'),avgSh=getAvg('apptShown'),avgSo=getAvg('totalSold');
+  const maxApex = Math.max(...v.map(p=>apexScore(p)),1);
+
+  let rows = v.map(p=>({...p,hs:apexScore(p)}));
+  rows.sort((a,b)=>{
+    let va,vb;
+    switch(sort.key){
+      case 'name': return sort.dir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);
+      case 'calls':va=a.calls;vb=b.calls;break;case 'emails':va=a.emails;vb=b.emails;break;
+      case 'texts':va=a.texts;vb=b.texts;break;case 'appt':va=a.apptCreated;vb=b.apptCreated;break;
+      case 'shown':va=a.apptShown;vb=b.apptShown;break;case 'sold':va=a.totalSold;vb=b.totalSold;break;
+      case 'new':va=a.newSold;vb=b.newSold;break;case 'used':va=a.usedSold;vb=b.usedSold;break;
+      case 'leads':va=a.leads;vb=b.leads;break;case 'roi':va=a.roi;vb=b.roi;break;
+      case 'close':va=a.closeRate;vb=b.closeRate;break;default:va=a.hs;vb=b.hs;
+    }
+    return sort.dir==='asc'?va-vb:vb-va;
+  });
+
+  const th=(lbl,key)=>{
+    const is=sort.key===key; const arr=is?(sort.dir==='asc'?'▲':'▼'):'▼';
+    return `<th class="${is?'sorted':''}" data-sort="${key}">${lbl} <span class="sa">${arr}</span></th>`;
+  };
+
+  let html = `<div class="tbl-wrap ani d3"><table><thead><tr>
+    ${th('#','rank')} ${th('Name & Status','name')} ${th('Apex Score','hustle')}
+    ${th('Sales','sold')} ${th('New','new')} ${th('Used','used')}
+    ${th('Calls','calls')} ${th('Emails','emails')} ${th('Texts','texts')}
+    ${th('Appts Set','appt')} ${th('Shown','shown')} ${th('Leads','leads')}
+    ${th('Close %','close')} ${th('Gross','roi')}
+    <th style="width:32px"></th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r,i)=>{
+    const rk=i+1; const rc=rk<=3?`r${rk}`:'';
+    const c=COLORS[people.findIndex(p=>p.id===r.id)%COLORS.length];
+    const hPct=Math.round((r.hs/maxApex)*100);
+    const st=getStatuses(r);
+
+    let badges='';
+    if(st.closer) badges+=`<span class="badge-icon" title="Apex Closer: ${Math.round((weights.closerThreshold)*100)}%+ Showroom Close (+${Math.round((weights.closerBonus-1)*100)}% Score)">🔥</span>`;
+    if(st.keyboard) badges+=`<span class="badge-icon" title="Keyboard Warrior: Too much text/email vs calls (Score Penalty)">📱</span>`;
+    if(st.dino) badges+=`<span class="badge-icon" title="Dinosaur Mode: High calls, low texts (−${weights.dinoPenalty}pts)">🦕</span>`;
+
+    html += `<tr>
+      <td class="rank-num ${rc}">${rk}</td>
+      <td><div class="name-cell">
+        <div class="av" style="background:${c}20;color:${c};border:1px solid ${c}50">${ini(r.name)}</div>
+        <span class="name-txt">${r.name}</span>${badges}
+      </div></td>
+      <td><div class="hustle-bar"><span class="hb-val" style="color:${hbColor(hPct)}">${r.hs}</span><div class="hb-track"><div class="hb-fill" style="width:${hPct}%;background:${hbColor(hPct)}"></div></div></div></td>
+      <td><span class="metric m-fire">${r.totalSold}</span></td>
+      <td>${metricBadge(r.newSold,avgSo/3)}</td>
+      <td>${metricBadge(r.usedSold,avgSo*2/3)}</td>
+      <td>${metricBadge(r.calls,avgC)}</td>
+      <td>${metricBadge(r.emails,avgE)}</td>
+      <td>${metricBadge(r.texts,avgT)}</td>
+      <td>${metricBadge(r.apptCreated,avgA)}</td>
+      <td>${metricBadge(r.apptShown,avgSh)}</td>
+      <td style="color:var(--txt2)">${r.leads}</td>
+      <td style="color:var(--txt2)">${r.closeRate.toFixed(1)}%</td>
+      <td style="color:var(--green2);font-weight:700">${fmt$(r.roi)}</td>
+      <td><span class="edit-icon" onclick="openEdit('${r.id}')">✏</span></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+
+  html += `<div class="legend">
+    <span style="color:var(--txt);font-weight:700">STATUS EFFECTS:</span>
+    <span class="leg-item">🔥 <b>Apex Closer</b> (+${Math.round((weights.closerBonus-1)*100)}% Bonus)</span>
+    <span class="leg-item">📱 <b>Keyboard Warrior</b> (Penalty)</span>
+    <span class="leg-item">🦕 <b>Dinosaur Mode</b> (−${weights.dinoPenalty}pts)</span>
+  </div>`;
+
+  document.getElementById('view-scoreboard').innerHTML = html;
+  document.querySelectorAll('#view-scoreboard thead th[data-sort]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.dataset.sort;
+      if(sort.key===k) sort.dir=sort.dir==='desc'?'asc':'desc';
+      else sort={key:k,dir:'desc'};
+      renderScoreboard();
+    });
+  });
+}
+
+function renderGrind() {
+  const v=vis();
+  if(!v.length){ document.getElementById('view-grind').innerHTML='<div style="text-align:center;padding:60px;color:var(--txt3)"><p>No reps visible.</p></div>'; return; }
+  const metrics=[{key:'calls',label:'Calls'},{key:'emails',label:'Emails'},{key:'apptCreated',label:'Appts Set'},{key:'apptShown',label:'Shown'},{key:'totalSold',label:'Sales'}];
+  const active=v.filter(p=>p.leads>0||p.calls>5||p.totalSold>0);
+  const avgs={},maxes={};
+  metrics.forEach(m=>{ avgs[m.key]=active.length?active.reduce((s,p)=>s+p[m.key],0)/active.length:0; maxes[m.key]=Math.max(...v.map(p=>p[m.key]),1); });
+  const scored=v.map(p=>({...p,hs:apexScore(p)})).sort((a,b)=>b.hs-a.hs);
+  const topHS=scored[0]?.hs||1;
+
+  // Helper: render one lead-type close card
+  const ltCard = (cls, label, sold, leads) => {
+    if(!leads){
+      return `<div class="lt-card ${cls}"><div class="lt-label">${label}</div><div class="lt-pct lt-na">—</div><div class="lt-detail">0 / 0</div></div>`;
+    }
+    const pct = (sold/leads)*100;
+    const tier = pct>=20?'lt-hot':pct>=10?'lt-warm':'lt-cold';
+    return `<div class="lt-card ${cls}"><div class="lt-label">${label}</div><div class="lt-pct ${tier}">${pct.toFixed(1)}%</div><div class="lt-detail">${sold} / ${leads}</div></div>`;
+  };
+
+  let html='<div class="grind-grid">';
+  scored.forEach(p=>{
+    const tier=p.hs>=topHS*.7?'top-tier':p.hs>=topHS*.3?'mid-tier':'low-tier';
+    const c=COLORS[people.findIndex(x=>x.id===p.id)%COLORS.length];
+    let analysis='';
+    metrics.forEach(m=>{
+      const val=p[m.key],avg=avgs[m.key],max=maxes[m.key];
+      const pct=max>0?Math.round((val/max)*100):0;
+      const avgPct=max>0?Math.round((avg/max)*100):0;
+      let status,cls,barCls;
+      if(val>=avg*1.3){status='On Fire';cls='crush';barCls='hot';}
+      else if(val>=avg*.7){status='Heating Up';cls='push';barCls='warm';}
+      else{status='Ice Cold';cls='grind';barCls='cold';}
+      analysis+=`<div class="sw-row">
+        <div class="sw-label">${m.label}</div>
+        <div class="sw-bar-wrap">
+          <div class="sw-bar-track"><div class="sw-bar-avg" style="left:${avgPct}%"></div><div class="sw-bar-fill ${barCls}" style="width:${pct}%"></div></div>
+          <div class="sw-val">${val}</div>
+        </div>
+        <span class="sw-tag ${cls}">${status}</span>
+      </div>`;
+    });
+    html+=`<div class="grind-card ${tier}">
+      <div class="gc-header"><div class="gc-name" style="color:${c}">${p.name}</div><div class="gc-score"><div class="gs-num" style="color:${c}">${p.hs}</div><div class="gs-lbl">Apex</div></div></div>
+      <div class="gc-metrics">
+        <div class="gc-met"><div class="gm-val" style="color:var(--ice)">${p.leads}</div><div class="gm-lbl">Leads</div></div>
+        <div class="gc-met"><div class="gm-val" style="color:var(--fire)">${p.totalSold}</div><div class="gm-lbl">Sales</div></div>
+        <div class="gc-met"><div class="gm-val" style="color:var(--amber)">${p.apptCreated}</div><div class="gm-lbl">Appts</div></div>
+      </div>
+      <div class="gc-metrics" style="margin-top:-8px">
+        <div class="gc-met"><div class="gm-val" style="color:var(--green)">${p.calls}</div><div class="gm-lbl">Calls</div></div>
+        <div class="gc-met"><div class="gm-val" style="color:var(--purple)">${p.texts}</div><div class="gm-lbl">Texts</div></div>
+        <div class="gc-met"><div class="gm-val" style="color:var(--neon)">${p.emails}</div><div class="gm-lbl">Emails</div></div>
+      </div>
+      <div class="sw-section"><div class="sw-title">Activity vs. Team</div>${analysis}</div>
+      <div class="sw-section" style="margin-top:14px"><div class="sw-title">Close Rate by Lead Type</div>
+        <div class="lt-grid">
+          ${ltCard('lt-show','Showroom',p.showroomSold,p.showroomLeads)}
+          ${ltCard('lt-phone','Phone',p.phoneSold,p.phoneLeads)}
+          ${ltCard('lt-inet','Internet',p.internetSold,p.internetLeads)}
+        </div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+
+  html+=`<div class="legend">
+    <span>Legend:</span>
+    <span class="leg-item"><span class="leg-dot" style="background:var(--green)"></span> On Fire</span>
+    <span class="leg-item"><span class="leg-dot" style="background:var(--amber)"></span> Heating Up</span>
+    <span class="leg-item"><span class="leg-dot" style="background:var(--red)"></span> Ice Cold</span>
+    <span class="leg-item"><span class="leg-line" style="background:var(--txt2)"></span> Team Avg</span>
+    <span style="color:var(--txt3);font-size:11px">&bull; Close-rate tiers: 20%+ green, 10%+ amber, &lt;10% red</span>
+  </div>`;
+
+  document.getElementById('view-grind').innerHTML=html;
+}
+
+function renderRoster() {
+  const onCount=people.filter(p=>p.visible).length;
+  let html=`<div class="roster-toolbar">
+    <h2>Roster (${people.length} reps)</h2>
+    <div class="rt-right">
+      <span class="active-count">${onCount} of ${people.length} active</span>
+      <button class="btn btn-sm" onclick="toggleAll(true)">Show All</button>
+      <button class="btn btn-sm" onclick="toggleAll(false)">Hide All</button>
+      <button class="btn btn-sm btn-green" onclick="openAddPerson()">+ Add Person</button>
+    </div>
+  </div><div class="roster-grid">`;
+  people.forEach((p,i)=>{
+    const c=COLORS[i%COLORS.length]; const hs=apexScore(p);
+    html+=`<div class="roster-card ${p.visible?'':'disabled'}">
+      <div class="rc-av" style="background:${c}20;color:${c};border:1px solid ${c}50">${ini(p.name)}</div>
+      <div class="rc-info"><div class="rc-name">${p.name}</div><div class="rc-stats">${p.totalSold} sold &bull; ${p.calls} calls &bull; ${p.emails} emails &bull; Apex: ${hs}</div></div>
+      <div class="rc-actions">
+        <button class="btn btn-sm" onclick="openEdit('${p.id}')">✏</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePerson('${p.id}')">✕</button>
+        <label class="toggle"><input type="checkbox" ${p.visible?'checked':''} onchange="togglePerson('${p.id}',this.checked)"><span class="slider"></span></label>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('view-roster').innerHTML=html;
+}
+
+// ─── INTERACTIVITY ───
+function togglePerson(id,on){ const p=people.find(x=>x.id===id); if(p){p.visible=on;save();renderAll();} }
+function toggleAll(on){ people.forEach(p=>p.visible=on); save(); renderAll(); }
+function deletePerson(id){ if(!confirm('Remove this person?'))return; people=people.filter(p=>p.id!==id); save(); renderAll(); toast('Person removed'); }
+
+function showModal(html){ document.getElementById('modalInner').innerHTML=html; document.getElementById('modal').classList.add('show'); }
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal').addEventListener('click',function(ev){ if(ev.target===this) closeModal(); });
+
+function switchTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active');
+  const v=btn.dataset.v;
+  ['scoreboard','grind','roster'].forEach(id=>{ document.getElementById('view-'+id).style.display=id===v?'block':'none'; });
+  if(v==='roster') renderRoster();
+}
+
+// ─── EDIT PERSON ───
+function openEdit(id){
+  const p=people.find(x=>x.id===id); if(!p) return;
+  showModal(`
+    <h2>EDIT — ${p.name.toUpperCase()}</h2>
+    <input type="hidden" id="eId" value="${p.id}">
+    <div class="fg"><label>Name</label><input type="text" id="eName" value="${p.name}"></div>
+    <div class="frow3">
+      <div class="fg"><label>Leads</label><input type="number" id="eLeads" value="${p.leads}"></div>
+      <div class="fg"><label>Active</label><input type="number" id="eActive" value="${p.active}"></div>
+      <div class="fg"><label>Inactive</label><input type="number" id="eInactive" value="${p.inactive}"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>New Sold</label><input type="number" id="eNewSold" value="${p.newSold}"></div>
+      <div class="fg"><label>Used Sold</label><input type="number" id="eUsedSold" value="${p.usedSold}"></div>
+      <div class="fg"><label>Total Sold</label><input type="number" id="eTotalSold" value="${p.totalSold}"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Calls</label><input type="number" id="eCalls" value="${p.calls}"></div>
+      <div class="fg"><label>Emails</label><input type="number" id="eEmails" value="${p.emails}"></div>
+      <div class="fg"><label>Texts</label><input type="number" id="eTexts" value="${p.texts}"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Appts Created</label><input type="number" id="eApptC" value="${p.apptCreated}"></div>
+      <div class="fg"><label>Appts Shown</label><input type="number" id="eApptS" value="${p.apptShown}"></div>
+      <div class="fg"><label>Appts Sold</label><input type="number" id="eApptSold" value="${p.apptSold}"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Gross / ROI ($)</label><input type="number" id="eROI" value="${p.roi}" step="100"></div>
+      <div class="fg"><label>Close Rate (%)</label><input type="number" id="eClose" value="${p.closeRate}" step="0.1"></div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--brd)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt3);font-weight:700;margin-bottom:10px">Close Rate by Lead Type</div>
+      <div class="frow">
+        <div class="fg"><label>Showroom Leads</label><input type="number" id="eShowLeads" value="${p.showroomLeads||0}"></div>
+        <div class="fg"><label>Showroom Sold</label><input type="number" id="eShowSold" value="${p.showroomSold||0}"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Phone Leads</label><input type="number" id="ePhoneLeads" value="${p.phoneLeads||0}"></div>
+        <div class="fg"><label>Phone Sold</label><input type="number" id="ePhoneSold" value="${p.phoneSold||0}"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Internet Leads</label><input type="number" id="eInetLeads" value="${p.internetLeads||0}"></div>
+        <div class="fg"><label>Internet Sold</label><input type="number" id="eInetSold" value="${p.internetSold||0}"></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-fire" onclick="saveEdit()">Save</button></div>
+  `);
+}
+
+function saveEdit(){
+  const id=document.getElementById('eId').value; const p=people.find(x=>x.id===id); if(!p)return;
+  p.name=document.getElementById('eName').value.trim()||p.name;
+  p.leads=parseInt(document.getElementById('eLeads').value)||0;
+  p.active=parseInt(document.getElementById('eActive').value)||0;
+  p.inactive=parseInt(document.getElementById('eInactive').value)||0;
+  p.newSold=parseInt(document.getElementById('eNewSold').value)||0;
+  p.usedSold=parseInt(document.getElementById('eUsedSold').value)||0;
+  p.totalSold=parseInt(document.getElementById('eTotalSold').value)||0;
+  p.calls=parseInt(document.getElementById('eCalls').value)||0;
+  p.emails=parseInt(document.getElementById('eEmails').value)||0;
+  p.texts=parseInt(document.getElementById('eTexts').value)||0;
+  p.apptCreated=parseInt(document.getElementById('eApptC').value)||0;
+  p.apptShown=parseInt(document.getElementById('eApptS').value)||0;
+  p.apptSold=parseInt(document.getElementById('eApptSold').value)||0;
+  p.roi=parseFloat(document.getElementById('eROI').value)||0;
+  p.closeRate=parseFloat(document.getElementById('eClose').value)||0;
+  p.showroomLeads=parseInt(document.getElementById('eShowLeads').value)||0;
+  p.showroomSold=parseInt(document.getElementById('eShowSold').value)||0;
+  p.phoneLeads=parseInt(document.getElementById('ePhoneLeads').value)||0;
+  p.phoneSold=parseInt(document.getElementById('ePhoneSold').value)||0;
+  p.internetLeads=parseInt(document.getElementById('eInetLeads').value)||0;
+  p.internetSold=parseInt(document.getElementById('eInetSold').value)||0;
+  save(); closeModal(); renderAll(); toast('Updated '+p.name);
+}
+
+// ─── ADD PERSON ───
+function openAddPerson(){
+  showModal(`
+    <h2>ADD REP</h2>
+    <div class="fg"><label>Name</label><input type="text" id="aName" placeholder="First Last"></div>
+    <div class="frow3">
+      <div class="fg"><label>Leads</label><input type="number" id="aLeads" value="0"></div>
+      <div class="fg"><label>New Sold</label><input type="number" id="aNewSold" value="0"></div>
+      <div class="fg"><label>Used Sold</label><input type="number" id="aUsedSold" value="0"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Calls</label><input type="number" id="aCalls" value="0"></div>
+      <div class="fg"><label>Emails</label><input type="number" id="aEmails" value="0"></div>
+      <div class="fg"><label>Texts</label><input type="number" id="aTexts" value="0"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label>Appts Created</label><input type="number" id="aApptC" value="0"></div>
+      <div class="fg"><label>Appts Shown</label><input type="number" id="aApptS" value="0"></div>
+      <div class="fg"><label>Gross ($)</label><input type="number" id="aROI" value="0" step="100"></div>
+    </div>
+    <div class="modal-ft"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-fire" onclick="saveAdd()">Add</button></div>
+  `);
+}
+
+function saveAdd(){
+  const name=document.getElementById('aName').value.trim(); if(!name) return toast('Enter a name',true);
+  const ns=parseInt(document.getElementById('aNewSold').value)||0;
+  const us=parseInt(document.getElementById('aUsedSold').value)||0;
+  people.push({
+    id:'p'+Date.now(), name, visible:true, leads:parseInt(document.getElementById('aLeads').value)||0,
+    active:0, inactive:0, newSold:ns, usedSold:us, totalSold:ns+us,
+    calls:parseInt(document.getElementById('aCalls').value)||0,
+    emails:parseInt(document.getElementById('aEmails').value)||0,
+    texts:parseInt(document.getElementById('aTexts').value)||0,
+    apptCreated:parseInt(document.getElementById('aApptC').value)||0,
+    apptShown:parseInt(document.getElementById('aApptS').value)||0, apptSold:0,
+    roi:parseFloat(document.getElementById('aROI').value)||0, closeRate:0,
+    showroomLeads:0, showroomSold:0, phoneLeads:0, phoneSold:0, internetLeads:0, internetSold:0
+  });
+  save(); closeModal(); renderAll(); toast(name+' added to roster');
+}
+
+// ─── SETTINGS PANEL ───
+function openSettings(){
+  settingsSection='scoring';
+  renderSettings();
+}
+
+function renderSettings(){
+  const w=weights, c=config;
+  const stab=(key,label)=>`<button class="stab ${settingsSection===key?'active':''}" onclick="settingsSection='${key}';renderSettings()">${label}</button>`;
+  
+  let body='';
+  if(settingsSection==='scoring'){
+    body=`
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:16px;line-height:1.6">Points awarded per activity. The Apex Score is the weighted sum of all activities, modified by buffs and debuffs.</p>
+      <div class="frow3">
+        <div class="fg"><label>Points per Call</label><input type="number" id="wCallPts" value="${w.callPts}" step="1"></div>
+        <div class="fg"><label>Points per Text</label><input type="number" id="wTextPts" value="${w.textPts}" step="1"></div>
+        <div class="fg"><label>Points per Email</label><input type="number" id="wEmailPts" value="${w.emailPts}" step="1"></div>
+      </div>
+      <div class="frow3">
+        <div class="fg"><label>Points per Appt Set</label><input type="number" id="wApptSetPts" value="${w.apptSetPts}" step="1"></div>
+        <div class="fg"><label>Points per Appt Shown</label><input type="number" id="wApptShowPts" value="${w.apptShowPts}" step="1"></div>
+        <div class="fg"><label>Points per Sale</label><input type="number" id="wSoldPts" value="${w.soldPts}" step="1"></div>
+      </div>
+      <div class="formula-preview">
+        <div class="fp-title">Formula Preview</div>
+        <code>Score = (Calls × ${w.callPts}) + (Texts × ${w.textPts}) + (Emails × ${w.emailPts})<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + (Appts Set × ${w.apptSetPts}) + (Appts Shown × ${w.apptShowPts}) + (Sales × ${w.soldPts})<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ± Buffs/Debuffs</code>
+      </div>`;
+  } else if(settingsSection==='buffs'){
+    body=`
+      <div class="buff-card">
+        <div class="buff-hdr"><span>📱</span><span class="buff-name">Keyboard Warrior</span><span class="buff-type" style="color:var(--red)">(DEBUFF)</span></div>
+        <p>Penalizes reps who hide behind screens. Triggers when (texts + emails) exceeds calls × threshold.</p>
+        <div class="frow">
+          <div class="fg"><label>Digital-to-Call Ratio Threshold</label><input type="number" id="wKbThreshold" value="${w.kbThreshold}" step="0.5"></div>
+          <div class="fg"><label>Penalty per Excess Activity</label><input type="number" id="wKbPenaltyPer" value="${w.kbPenaltyPer}" step="0.1"></div>
+        </div>
+      </div>
+      <div class="buff-card">
+        <div class="buff-hdr"><span>🦕</span><span class="buff-name">Dinosaur Mode</span><span class="buff-type" style="color:var(--red)">(DEBUFF)</span></div>
+        <p>Penalizes reps who call a lot but refuse to text. Triggers when calls exceed minimum and texts are below ratio.</p>
+        <div class="frow3">
+          <div class="fg"><label>Min Calls to Trigger</label><input type="number" id="wDinoMinCalls" value="${w.dinoMinCalls}" step="1"></div>
+          <div class="fg"><label>Text-to-Call Ratio</label><input type="number" id="wDinoRatio" value="${w.dinoRatio}" step="0.05"></div>
+          <div class="fg"><label>Flat Penalty (pts)</label><input type="number" id="wDinoPenalty" value="${w.dinoPenalty}" step="1"></div>
+        </div>
+      </div>
+      <div class="buff-card">
+        <div class="buff-hdr"><span>🔥</span><span class="buff-name">Apex Closer</span><span class="buff-type" style="color:var(--green)">(BUFF)</span></div>
+        <p>Rewards reps with high showroom close rates. Multiplies entire score when sold/shown ratio meets threshold.</p>
+        <div class="frow">
+          <div class="fg"><label>Close Rate Threshold (0–1)</label><input type="number" id="wCloserThreshold" value="${w.closerThreshold}" step="0.05"></div>
+          <div class="fg"><label>Score Multiplier</label><input type="number" id="wCloserBonus" value="${w.closerBonus}" step="0.05"></div>
+        </div>
+      </div>`;
+  } else {
+    body=`
+      <div class="fg"><label>Dealer Name</label><input type="text" id="cDealerName" value="${c.dealerName}"></div>
+      <div class="fg"><label>Report Period</label><input type="text" id="cReportPeriod" value="${c.reportPeriod}"></div>
+      <div class="fg"><label>Management Names (comma-separated, hidden by default on import)</label><textarea id="cManagement">${c.management}</textarea></div>
+      <div class="danger-zone">
+        <div class="dz-title">Danger Zone</div>
+        <button class="btn btn-danger" onclick="resetAll()">Reset Everything to Defaults</button>
+      </div>`;
+  }
+
+  showModal(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="color:var(--amber);margin-bottom:0">⚙ SETTINGS</h2>
+    </div>
+    <div class="stabs">
+      ${stab('scoring','Scoring Weights')}
+      ${stab('buffs','Buffs & Debuffs')}
+      ${stab('general','General')}
+    </div>
+    ${body}
+    <div class="modal-ft"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-fire" onclick="applySettings()">Apply Settings</button></div>
+  `);
+}
+
+function applySettings(){
+  if(settingsSection==='scoring'){
+    weights.callPts=parseFloat(document.getElementById('wCallPts').value)||0;
+    weights.textPts=parseFloat(document.getElementById('wTextPts').value)||0;
+    weights.emailPts=parseFloat(document.getElementById('wEmailPts').value)||0;
+    weights.apptSetPts=parseFloat(document.getElementById('wApptSetPts').value)||0;
+    weights.apptShowPts=parseFloat(document.getElementById('wApptShowPts').value)||0;
+    weights.soldPts=parseFloat(document.getElementById('wSoldPts').value)||0;
+  } else if(settingsSection==='buffs'){
+    weights.kbThreshold=parseFloat(document.getElementById('wKbThreshold').value)||0;
+    weights.kbPenaltyPer=parseFloat(document.getElementById('wKbPenaltyPer').value)||0;
+    weights.dinoMinCalls=parseFloat(document.getElementById('wDinoMinCalls').value)||0;
+    weights.dinoRatio=parseFloat(document.getElementById('wDinoRatio').value)||0;
+    weights.dinoPenalty=parseFloat(document.getElementById('wDinoPenalty').value)||0;
+    weights.closerThreshold=parseFloat(document.getElementById('wCloserThreshold').value)||0;
+    weights.closerBonus=parseFloat(document.getElementById('wCloserBonus').value)||0;
+  } else {
+    config.dealerName=document.getElementById('cDealerName').value.trim()||config.dealerName;
+    config.reportPeriod=document.getElementById('cReportPeriod').value.trim()||config.reportPeriod;
+    config.management=document.getElementById('cManagement').value;
+    document.getElementById('dealerName').textContent=config.dealerName;
+    document.getElementById('reportPeriod').textContent=config.reportPeriod;
+  }
+  save(); closeModal(); renderAll(); toast('Settings saved');
+}
+
+function resetAll(){
+  if(!confirm('Reset everything to defaults? This cannot be undone.'))return;
+  people=JSON.parse(JSON.stringify(INITIAL_DATA));
+  weights=JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
+  config=JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  document.getElementById('dealerName').textContent=config.dealerName;
+  document.getElementById('reportPeriod').textContent=config.reportPeriod;
+  save(); closeModal(); renderAll(); toast('Reset to defaults');
+}
+
+// ─── CSV IMPORT / EXPORT ───
+function importCRM(ev){
+  const file=ev.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const parsed=parseCRMReport(e.target.result);
+      if(!parsed.length) return toast('No data found in CSV',true);
+      people=parsed; save(); renderAll(); toast('Imported '+parsed.length+' reps');
+    }catch(err){console.error(err);toast('Error: '+err.message,true);}
+  };
+  reader.readAsText(file); ev.target.value='';
+}
+
+function parseCRMReport(text){
+  const mgmt=(config.management||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const lines=text.split(/\r?\n/); const result=[]; let hIdx=-1;
+  for(let i=0;i<lines.length;i++){if(lines[i].includes('"Name"')&&lines[i].includes('"Calls"')){hIdx=i;break;}}
+  if(hIdx<0) for(let i=0;i<lines.length;i++){if(lines[i].match(/Name.*Up\s*Type/i)){hIdx=i;break;}}
+  if(hIdx<0) throw new Error('Could not find header row');
+  const headers=csvRow(lines[hIdx]); const cm={};
+  headers.forEach((h,i)=>{
+    const l=h.toLowerCase().trim();
+    if(l==='name')cm.name=i;else if(l==='up type')cm.upType=i;else if(l==='leads')cm.leads=i;
+    else if(l==='active')cm.active=i;else if(l==='inactive')cm.inactive=i;
+    else if(l==='new sold')cm.newSold=i;else if(l==='used sold')cm.usedSold=i;
+    else if(l==='total sold')cm.totalSold=i;else if(l==='calls')cm.calls=i;
+    else if(l==='emails')cm.emails=i;else if(l==='texts')cm.texts=i;
+    else if(l==='appt created')cm.apptCreated=i;else if(l==='appt shown')cm.apptShown=i;
+    else if(l==='appt sold')cm.apptSold=i;else if(l==='roi')cm.roi=i;else if(l==='% closing')cm.closeRate=i;
+  });
+
+  const pM=v=>{if(!v)return 0;return parseFloat(v.replace(/[$,\s"()]/g,''))||0};
+  const pP=v=>parseFloat((v||'').replace(/[%"]/g,''))||0;
+  const pN=v=>parseInt((v||'').replace(/[",]/g,''))||0;
+  const classifyUp=(raw)=>{
+    const s=(raw||'').toLowerCase().trim();
+    if(!s||s==='subtotal:'||s==='total')return null;
+    if(s.includes('showroom')||s.includes('showfloor')||s.includes('walk')||s.includes('be back')||s.includes('be-back')||s.includes('beback'))return 'showroom';
+    if(s.includes('phone')||s.includes('telephon')||s.includes('inbound call')||s.includes('call in'))return 'phone';
+    if(s.includes('internet')||s.includes('web')||s.includes('online')||s.includes('digital')||s.includes('third party')||s.includes('3rd party')||s.includes('lead'))return 'internet';
+    return null;
+  };
+
+  // Diagnostic: log what we encounter so unmapped up types can be identified in DevTools
+  const seenUps=new Map();
+
+  // VinSolutions layout: Subtotal row (with name) comes FIRST, then per-up-type rows (blank name) follow.
+  // Strategy: on Subtotal, push a new rep onto result. On subsequent up-type rows, add to the most recent rep.
+  let lastName='';
+  let currentRepIdx=-1;
+  for(let i=hIdx+1;i<lines.length;i++){
+    const row=csvRow(lines[i]); if(!row||row.length<5) continue;
+    const rawName=(row[cm.name]||'').trim();
+    const ut=(row[cm.upType]||'').trim();
+    if(rawName.startsWith('All Users')){ currentRepIdx=-1; continue; }
+
+    // Inherit rep name across blank-name rows
+    const name = rawName || lastName;
+    if(rawName) lastName = rawName;
+    if(!name) continue;
+
+    // Subtotal row: start a new rep
+    if(ut==='Subtotal:'){
+      const parts=name.split(',').map(s=>s.trim()); const dn=parts.length>=2?parts[1]+' '+parts[0]:name;
+      const isMgmt=mgmt.some(m=>dn.toLowerCase().includes(m));
+      result.push({
+        id:'p'+Date.now()+'_'+i,name:dn,visible:!isMgmt,
+        leads:pN(row[cm.leads]),active:pN(row[cm.active]),inactive:pN(row[cm.inactive]),
+        newSold:pN(row[cm.newSold]),usedSold:pN(row[cm.usedSold]),totalSold:pN(row[cm.totalSold]),
+        calls:pN(row[cm.calls]),emails:pN(row[cm.emails]),texts:pN(row[cm.texts]),
+        apptCreated:pN(row[cm.apptCreated]),apptShown:pN(row[cm.apptShown]),apptSold:pN(row[cm.apptSold]),
+        roi:pM(row[cm.roi]),closeRate:pP(row[cm.closeRate]),
+        showroomLeads:0,showroomSold:0,phoneLeads:0,phoneSold:0,internetLeads:0,internetSold:0
+      });
+      currentRepIdx=result.length-1;
+      continue;
+    }
+
+    // Non-Subtotal row: classify the up type and add to the current rep
+    if(!ut) continue;
+    const bucket=classifyUp(ut);
+    const key=ut+' → '+(bucket||'UNMATCHED');
+    seenUps.set(key,(seenUps.get(key)||0)+1);
+    if(bucket && currentRepIdx>=0){
+      const rep=result[currentRepIdx];
+      rep[bucket+'Leads']+=pN(row[cm.leads]);
+      rep[bucket+'Sold']+=pN(row[cm.totalSold]);
+    }
+  }
+
+  // Diagnostic summary — unmatched up-type strings show up here
+  console.log('%c[Apex Board] CSV Up-Type classification','color:#ff5e2e;font-weight:bold');
+  console.table(Array.from(seenUps.entries()).map(([k,v])=>({upType:k.split(' → ')[0],bucket:k.split(' → ')[1],rowCount:v})));
+  console.log('[Apex Board] Per-rep lead-type totals:',result.map(r=>({name:r.name,showroom:r.showroomSold+'/'+r.showroomLeads,phone:r.phoneSold+'/'+r.phoneLeads,internet:r.internetSold+'/'+r.internetLeads})));
+
+  return result;
+}
+
+function csvRow(line){
+  if(!line)return null; const r=[]; let c=''; let q=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i]; if(ch==='"'){if(q&&line[i+1]==='"'){c+='"';i++}else q=!q;}
+    else if(ch===','&&!q){r.push(c);c=''}else c+=ch;
+  }
+  r.push(c); return r;
+}
+
+function exportData(){
+  const b=new Blob([JSON.stringify({people,weights,config},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download='apex_board_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  URL.revokeObjectURL(a.href); toast('Data exported');
+}
+
+function toast(msg,err){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderColor=err?'var(--red)':'var(--green)';
+  t.style.color=err?'var(--red)':'var(--green2)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+function renderAll(){
+  document.getElementById('dealerName').textContent=config.dealerName;
+  document.getElementById('reportPeriod').textContent=config.reportPeriod;
+  renderMVP(); renderTeamTotals(); renderScoreboard(); renderGrind(); renderRoster();
+}
+renderAll();
+</script>
+</body>
+</html>
